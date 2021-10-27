@@ -77,7 +77,9 @@ func (pool *WorkerPool) doSeed() {
 func (pool *WorkerPool) doJob() {
 	defer pool.recoverPanic()
 	defer pool.wg.Done()
-	pool.worker.Job(pool.buf)
+	for data := range pool.buf {
+		pool.worker.Job(data)
+	}
 }
 
 func (pool *WorkerPool) Do() {
