@@ -20,15 +20,22 @@ type WorkerPool struct {
 	wg      sync.WaitGroup
 }
 
+func defaultOnPanic(issue interface{}) {
+	panic(issue)
+}
+
 func NewWorkerPool(worker Worker, options ...WorkerPoolOption) *WorkerPool {
 	pool := &WorkerPool{
-		id:     uuid.NewString(),
-		worker: worker,
+		id:      uuid.NewString(),
+		worker:  worker,
+		onPanic: defaultOnPanic,
 	}
 
 	for _, opt := range options {
 		opt(pool)
 	}
+
+	pool.buf = make(chan interface{}, pool.BufSize())
 
 	return pool
 }
@@ -48,7 +55,7 @@ func (pool WorkerPool) NumWorker() int {
 func (pool WorkerPool) BufSize() int {
 	bufSize := pool.bufSize
 	if pool.bufSize <= 0 {
-		bufSize = 10
+		bufSize = 1000
 	}
 	return bufSize
 }
@@ -61,6 +68,7 @@ func (pool *WorkerPool) recoverPanic() {
 }
 
 func (pool *WorkerPool) doSeed() {
+	defer close(pool.buf)
 	defer pool.recoverPanic()
 	defer pool.wg.Done()
 	pool.worker.Seed(pool.buf)

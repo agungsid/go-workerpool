@@ -1,4 +1,4 @@
-module github.com/agungsid/workerpool
+module github.com/agungsid/go-workerpool
 
 go 1.13
 
