@@ -6,15 +6,15 @@ import (
 	"github.com/google/uuid"
 )
 
-type WorkerPool struct {
+type WorkerPool[T any] struct {
 	id        string
 	numWorker int
 	bufSize   int
 	onPanic   func(interface{})
 
-	worker Worker
+	worker Worker[T]
 
-	buf chan interface{}
+	buf chan T
 
 	running bool
 	wg      sync.WaitGroup
@@ -24,8 +24,8 @@ func defaultOnPanic(issue interface{}) {
 	panic(issue)
 }
 
-func NewWorkerPool(worker Worker, options ...WorkerPoolOption) *WorkerPool {
-	pool := &WorkerPool{
+func NewWorkerPool[T any](worker Worker[T], options ...WorkerPoolOption[T]) *WorkerPool[T] {
+	pool := &WorkerPool[T]{
 		id:      uuid.NewString(),
 		worker:  worker,
 		onPanic: defaultOnPanic,
@@ -35,16 +35,16 @@ func NewWorkerPool(worker Worker, options ...WorkerPoolOption) *WorkerPool {
 		opt(pool)
 	}
 
-	pool.buf = make(chan interface{}, pool.BufSize())
+	pool.buf = make(chan T, pool.BufSize())
 
 	return pool
 }
 
-func (pool WorkerPool) ID() string {
+func (pool WorkerPool[T]) ID() string {
 	return pool.id
 }
 
-func (pool WorkerPool) NumWorker() int {
+func (pool WorkerPool[T]) NumWorker() int {
 	numWorker := pool.numWorker
 	if pool.numWorker <= 0 {
 		numWorker = 10
@@ -52,7 +52,7 @@ func (pool WorkerPool) NumWorker() int {
 	return numWorker
 }
 
-func (pool WorkerPool) BufSize() int {
+func (pool WorkerPool[T]) BufSize() int {
 	bufSize := pool.bufSize
 	if pool.bufSize <= 0 {
 		bufSize = 1000
@@ -60,21 +60,21 @@ func (pool WorkerPool) BufSize() int {
 	return bufSize
 }
 
-func (pool *WorkerPool) recoverPanic() {
+func (pool *WorkerPool[T]) recoverPanic() {
 	r := recover()
 	if r != nil {
 		pool.onPanic(r)
 	}
 }
 
-func (pool *WorkerPool) doSeed() {
+func (pool *WorkerPool[T]) doSeed() {
 	defer close(pool.buf)
 	defer pool.recoverPanic()
 	defer pool.wg.Done()
 	pool.worker.Seed(pool.buf)
 }
 
-func (pool *WorkerPool) doJob() {
+func (pool *WorkerPool[T]) doJob() {
 	defer pool.recoverPanic()
 	defer pool.wg.Done()
 	for data := range pool.buf {
@@ -82,7 +82,7 @@ func (pool *WorkerPool) doJob() {
 	}
 }
 
-func (pool *WorkerPool) Do() {
+func (pool *WorkerPool[T]) Do() {
 	if pool.running {
 		return
 	}
@@ -96,4 +96,11 @@ func (pool *WorkerPool) Do() {
 	go pool.doSeed()
 	pool.wg.Wait()
 	pool.running = false
+}
+
+func (pool *WorkerPool[T]) DoAsync() {
+	go func(wp *WorkerPool[T]) {
+		defer wp.recoverPanic()
+		wp.Do()
+	}(pool)
 }

@@ -1,27 +1,27 @@
 package workerpool
 
-type WorkerPoolOption func(*WorkerPool)
+type WorkerPoolOption[T any] func(*WorkerPool[T])
 
-func OptionID(id string) WorkerPoolOption {
-	return func(wp *WorkerPool) {
+func OptionID[T any](id string) WorkerPoolOption[T] {
+	return func(wp *WorkerPool[T]) {
 		wp.id = id
 	}
 }
 
-func OptionNumWorker(numWorker int) WorkerPoolOption {
-	return func(wp *WorkerPool) {
+func OptionNumWorker[T any](numWorker int) WorkerPoolOption[T] {
+	return func(wp *WorkerPool[T]) {
 		wp.numWorker = numWorker
 	}
 }
 
-func OptionBufSize(bufSize int) WorkerPoolOption {
-	return func(wp *WorkerPool) {
+func OptionBufSize[T any](bufSize int) WorkerPoolOption[T] {
+	return func(wp *WorkerPool[T]) {
 		wp.bufSize = bufSize
 	}
 }
 
-func OptionOnPanic(onPanic func(issue interface{})) WorkerPoolOption {
-	return func(wp *WorkerPool) {
+func OptionOnPanic[T any](onPanic func(issue interface{})) WorkerPoolOption[T] {
+	return func(wp *WorkerPool[T]) {
 		wp.onPanic = onPanic
 	}
 }
