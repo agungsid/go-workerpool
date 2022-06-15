@@ -1,6 +1,6 @@
 package workerpool
 
-type Worker interface {
-	Seed(buf chan<- interface{})
-	Job(data interface{})
+type Worker[E any] interface {
+	Seed(buf chan<- E)
+	Job(data E)
 }
